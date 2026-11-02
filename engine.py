@@ -374,7 +374,7 @@ def answer_question(question: str, api_key: str | None = None, *, model: str = M
             except Exception:
                 # Keep only a safe categorical failure. Do not reveal Groq payloads.
                 rejection = "recovery attempt did not produce a valid answer"
-        fallback["gate_reason"] = "AI response rejected by quality gate: " + rejection + "; source-only fallback shown."
+        fallback["gate_reason"] = "AI failed the quality gate: " + rejection + "; source-only fallback shown."
         return fallback
     except json.JSONDecodeError:
         fallback["gate_reason"] = "AI returned unreadable structured output; source-only fallback shown."
