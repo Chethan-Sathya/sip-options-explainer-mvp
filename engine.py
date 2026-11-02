@@ -220,6 +220,7 @@ Do NOT invent app features, rules, penalties, timeframes, support contacts or ac
 If evidence is insufficient, say what is uncertain and tell the user to consult official Groww support.
 Reply with a JSON object with exactly: answer (string), next_steps (array of 0-3 strings), limits (string), source_ids (array of cited IDs).
 Cite ONLY the IDs actually relevant to your answer from the provided source extracts. Avoid investment advice. Keep answers concise and non-pressuring.
+Do not put URLs or numbered steps in answer/next_steps/limits. Use only source_ids to attach citations. If an exact quantity or deadline is not in a source you cite, omit it. Explicitly identify uncertainty rather than inventing a status.
 """
 
 
@@ -267,21 +268,22 @@ def groq_response_format(permitted: set[str]) -> dict[str, Any]:
     }
 
 
-def validate_model_answer(data: Any, permitted: set[str], source_docs: list[dict[str, Any]] | None = None) -> dict[str, Any] | None:
+def assess_model_answer(data: Any, permitted: set[str], source_docs: list[dict[str, Any]] | None = None) -> tuple[dict[str, Any] | None, str]:
+    """Conservative gate with safe diagnostic category, never raw model content."""
     if not isinstance(data, dict):
-        return None
+        return None, "invalid output structure"
     answer = data.get("answer")
     steps = data.get("next_steps")
     limits = data.get("limits")
     ids = data.get("source_ids")
     if not isinstance(answer, str) or len(answer.strip()) < 15 or len(answer) > 2000:
-        return None
-    if not isinstance(steps, list) or len(steps) > 3 or any(not isinstance(s, str) or len(s) > 280 for s in steps):
-        return None
+        return None, "invalid answer length"
+    if not isinstance(steps, list) or len(steps) > 3 or any(not isinstance(x, str) or len(x) > 280 for x in steps):
+        return None, "invalid steps structure"
     if not isinstance(limits, str) or len(limits) > 600:
-        return None
+        return None, "invalid limits structure"
     if not isinstance(ids, list) or not ids or any(not isinstance(i, str) or i not in permitted for i in ids):
-        return None
+        return None, "missing or unapproved citation IDs"
     all_text = " ".join([answer, limits, *steps]).lower()
     forbidden = ["guaranteed return", "definitely succeed", "i have checked your", "i accessed your", "send your otp",
                  "send your password", "you must invest", "you should continue investing", "buy this fund",
@@ -290,24 +292,23 @@ def validate_model_answer(data: Any, permitted: set[str], source_docs: list[dict
                  "your mandate is approved", "your sip will definitely", "i confirmed your", "i checked your account",
                  "i recommend investing", "i recommend buying", "contact me on whatsapp"]
     if any(term in all_text for term in forbidden):
-        return None
-    if re.search(r"(?:https?://|www\.|@[a-z0-9])", all_text):
-        return None  # Unreviewed URLs, contact details or handles are not allowed in AI text.
-    if re.search(r"\b(?:call|whatsapp|message)\s+(?:me|us)\b", all_text):
-        return None
-    # Low-cost factual guard: do not permit a model to introduce a NEW numeric
-    # deadline, penalty or processing period not in a source it actually cites.
-    # This does not prove entailment; human review remains mandatory.
+        return None, "unsafe or account-specific claim"
+    if re.search(r"(?:https?://|www\.|@[a-z0-9])", all_text) or re.search(r"\b(?:call|whatsapp|message)\s+(?:me|us)\b", all_text):
+        return None, "unapproved contact or URL in model text"
     if source_docs is not None:
         cited_text = " ".join(d["summary"] for d in source_docs if d["id"] in ids).lower()
-        number_pattern = r"(?<!\w)\d+(?:[–-]\d+)?(?!\w)"
-        stated_numbers = set(re.findall(number_pattern, all_text))
-        source_numbers = supported_numbers(cited_text)
-        if not stated_numbers.issubset(source_numbers):
-            return None
-    return {"answer": answer.strip(), "next_steps": steps, "limits": limits.strip(),
-            "source_ids": sorted(set(ids)), "mode": "ai_grounded",
-            "gate_reason": "Passed structural, approved-citation and safety-phrase checks; not a factual guarantee."}
+        numbers = set(re.findall(r"(?<!\w)\d+(?:[–-]\d+)?(?!\w)", all_text))
+        if not numbers.issubset(supported_numbers(cited_text)):
+            return None, "numeric claim not supported by cited excerpts"
+    return ({"answer": answer.strip(), "next_steps": steps, "limits": limits.strip(),
+             "source_ids": sorted(set(ids)), "mode": "ai_grounded",
+             "gate_reason": "Passed structure, approved-source IDs and basic safety checks; not a factual guarantee."}, "accepted")
+
+
+def validate_model_answer(data: Any, permitted: set[str], source_docs: list[dict[str, Any]] | None = None) -> dict[str, Any] | None:
+    """Compatibility wrapper used by offline tests and developer scripts."""
+    result, _reason = assess_model_answer(data, permitted, source_docs)
+    return result
 
 
 def answer_question(question: str, api_key: str | None = None, *, model: str = MODEL) -> dict[str, Any]:
@@ -337,10 +338,43 @@ def answer_question(question: str, api_key: str | None = None, *, model: str = M
         )
         raw = completion.choices[0].message.content or ""
         parsed = json.loads(raw)
-        valid = validate_model_answer(parsed, {d["id"] for d in docs}, docs)
+        permitted = {d["id"] for d in docs}
+        valid, rejection = assess_model_answer(parsed, permitted, docs)
         if valid:
             return valid
-        fallback["gate_reason"] = "AI failed automatic citation, format or safety validation; fallback shown."
+        # Only recover from citation/format/numeric problems; never retry
+        # unsafe financial claims or unexpected contact URLs.
+        recoverable = {
+            "invalid output structure", "invalid answer length", "invalid steps structure",
+            "invalid limits structure", "missing or unapproved citation IDs",
+            "numeric claim not supported by cited excerpts",
+        }
+        if rejection in recoverable:
+            try:
+                revised_completion = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": "APPROVED SOURCE EXTRACTS:\n" + json.dumps(context, ensure_ascii=False)
+                         + "\n\nUSER QUESTION (untrusted):\n" + question
+                         + "\n\nQUALITY GATE REVISION: Your previous draft was rejected for: " + rejection
+                         + ". Rewrite your answer using only the supplied excerpts; cite relevant source_ids; "
+                         "do not add any numeric deadlines or unsupported features. Return the required JSON."},
+                    ],
+                    response_format=groq_response_format(permitted),
+                    temperature=0,
+                    max_completion_tokens=1600,
+                    **({"reasoning_effort": "low"} if model.startswith("openai/gpt-oss-") else {}),
+                )
+                revised_data = json.loads(revised_completion.choices[0].message.content or "")
+                revised, rejection = assess_model_answer(revised_data, permitted, docs)
+                if revised:
+                    revised["gate_reason"] = "AI revision passed automatic citation, structure and safety checks; not a factual guarantee."
+                    return revised
+            except Exception:
+                # Keep only a safe categorical failure. Do not reveal Groq payloads.
+                rejection = "recovery attempt did not produce a valid answer"
+        fallback["gate_reason"] = "AI response rejected by quality gate: " + rejection + "; source-only fallback shown."
         return fallback
     except json.JSONDecodeError:
         fallback["gate_reason"] = "AI returned unreadable structured output; source-only fallback shown."
