@@ -39,6 +39,7 @@ with st.sidebar:
         st.success("AI is configured; every output must pass the quality gate.")
         st.caption(f"AI requests remaining this session: {max(0, MAX_AI_ATTEMPTS_PER_SESSION - st.session_state.ai_attempts)}")
     st.caption("AI model: " + MODEL)
+    st.caption("Build: diagnostics-2026-11-02")
     st.caption("No SIP actions or user account access are supported.")
     st.caption("Source excerpts reviewed: 2 Nov 2026. Confirm changing rules in the official app.")
     if st.button("Clear current question"):
@@ -86,7 +87,22 @@ if st.session_state.last_result is not None:
         st.warning("NO VERIFIED SOURCE · The assistant did not invent an answer.")
     else:
         st.warning("SOURCE-ONLY FALLBACK · AI not available or did not pass the gate.")
-    st.caption(result.get("gate_reason", "Automatic checks are limited; verify official guidance."))
+    gate_reason = result.get("gate_reason", "No diagnostic was recorded.")
+    if result["mode"] == "documented_fallback":
+        st.error("Why this fallback happened: " + gate_reason, icon="🔎")
+        if "authentication or permission" in gate_reason.lower():
+            st.info("The server found a key, but Groq did not authorize the request. Verify the key in Streamlit App settings → Secrets without sharing it here.")
+        elif "rate limit" in gate_reason.lower():
+            st.info("Groq has reported a rate limit. Keep the safe answer; check your Groq usage and limits.")
+        elif "provider rejected" in gate_reason.lower():
+            st.info("The provider rejected the AI request format. This requires a code fix; do not remove the safety gate.")
+        elif "failed automatic" in gate_reason.lower():
+            st.info("Groq returned content, but it did not pass an automatic check. The safe source-only answer is intentional.")
+        elif "service" in gate_reason.lower() or "network" in gate_reason.lower():
+            st.info("The request could not complete. Do not share the API key; check whether the Groq account and deployment are operational.")
+        st.caption("For support, share ONLY the text in the red diagnostic box, never your key or private account information.")
+    else:
+        st.caption(gate_reason)
     st.write(result["answer"])
     if result["next_steps"]:
         st.markdown("**Steps you may review independently**")
