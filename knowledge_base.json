@@ -1,0 +1,134 @@
+[
+  {
+    "id": "S1",
+    "topic": "edit",
+    "title": "When can I edit my SIP?",
+    "url": "https://groww.in/help/mutual-funds/discoverable/when-can-i-edit-my-sip--29",
+    "verified_on": "2026-11-02",
+    "summary": "Groww says investors can edit SIP amount and date or skip an instalment. If the next instalment is within two working days, the request will not apply to that upcoming instalment; it applies to later instalments. Editing an SIP created today can take up to two days to process.",
+    "keywords": [
+      "edit",
+      "modify",
+      "change",
+      "amount",
+      "date",
+      "reduce",
+      "lower",
+      "increase",
+      "salary",
+      "expense",
+      "afford",
+      "flexible",
+      "budget"
+    ]
+  },
+  {
+    "id": "S2",
+    "topic": "skip",
+    "title": "How to skip an SIP instalment",
+    "url": "https://groww.in/help/mutual-funds/mf-sip/how-to-skip-an-sip-instalment--79",
+    "verified_on": "2026-11-02",
+    "summary": "Groww's help instructions: Mutual Funds dashboard > My SIPs > choose SIP > Skip against upcoming instalment > confirm. The page describes restrictions close to the due date and warns that three consecutive skipped or missed instalments can lead to SIP cancellation. Check the app's displayed confirmation and applicable date before deciding.",
+    "keywords": [
+      "skip",
+      "pause",
+      "month",
+      "holiday",
+      "expenses",
+      "expense",
+      "afford",
+      "cash",
+      "cancel",
+      "miss",
+      "stop",
+      "travel"
+    ]
+  },
+  {
+    "id": "S3",
+    "topic": "payment",
+    "title": "How do I pay for my SIP instalment if the AutoPay debit failed?",
+    "url": "https://groww.in/help/mutual-funds/mf-sip/how-do-i-pay-for-my-sip-installment-if-the-autopay-debit-has-failed--40",
+    "verified_on": "2026-11-02",
+    "summary": "Groww lists insufficient bank balance or bank-payment issues as possible causes for a failed automatic payment. It says to open the dashboard, locate the pending SIP payment, and use the Pay action with an available payment method. Whether an instalment is eligible for payment must be verified in the user's own app.",
+    "keywords": [
+      "fail",
+      "failed",
+      "payment",
+      "pay",
+      "debit",
+      "deduct",
+      "pending",
+      "bounce",
+      "autopay",
+      "bank",
+      "insufficient",
+      "mandate"
+    ]
+  },
+  {
+    "id": "S4",
+    "topic": "status",
+    "title": "How can I confirm if my SIP instalment was deducted successfully?",
+    "url": "https://groww.in/help/mutual-funds/order/how-can-i-confirm-if-my-sip-instalment-was-deducted-successfully--18",
+    "verified_on": "2026-11-02",
+    "summary": "Groww advises checking a bank statement or passbook for deduction on the SIP date. It says AutoPay payment processing may take until end of day, and completion of order processing and unit allocation may take up to 5–6 business days, depending on payment method and fund type. Contact official Groww support if it remains unresolved; this prototype cannot confirm personal transactions.",
+    "keywords": [
+      "status",
+      "success",
+      "successful",
+      "active",
+      "show",
+      "showing",
+      "discrepancy",
+      "conflict",
+      "confirm",
+      "deduct",
+      "processed",
+      "processing",
+      "units",
+      "allocation",
+      "yesterday",
+      "today",
+      "statement"
+    ]
+  },
+  {
+    "id": "S5",
+    "topic": "autopay",
+    "title": "How do I set up AutoPay?",
+    "url": "https://groww.in/help/mutual-funds/mf-autopay/how-to-set-up-autopay--45",
+    "verified_on": "2026-11-02",
+    "summary": "Groww documents AutoPay setup under Profile > Bank and AutoPay > select bank > Set Up AutoPay. The approval process can take 2–7 working days. Never assume a mandate is active or approved without checking the actual app.",
+    "keywords": [
+      "autopay",
+      "mandate",
+      "setup",
+      "set up",
+      "activate",
+      "approved",
+      "register",
+      "otp",
+      "bank"
+    ]
+  },
+  {
+    "id": "S6",
+    "topic": "first_month",
+    "title": "Why is my SIP instalment skipping the first month?",
+    "url": "https://groww.in/help/mutual-funds/mf-sip/why-is-my-sip-installment-skipping-the-1st-month",
+    "verified_on": "2026-11-02",
+    "summary": "Groww says its SIP schedule requires a 30-day gap between instalments. An instalment may appear to skip the month after SIP creation if the interval would be shorter. Verify the displayed schedule rather than assuming a payment failure.",
+    "keywords": [
+      "first",
+      "new",
+      "initial",
+      "started",
+      "start",
+      "month",
+      "schedule",
+      "30-day",
+      "30"
+    ]
+  }
+]
