@@ -4,12 +4,6 @@
 
 This is an **independent educational prototype** exploring whether easier explanation of existing Groww SIP controls helps investors make informed decisions. It is **not** a Groww product, has no Groww account integration, cannot view payment status, and never executes a SIP change. It is **not** the AI Discovery Engine used to synthesise research records.
 
-## Public MVP URL (provided 2 November 2026)
-
-[Open the Streamlit MVP](https://sip-options-explainer-mvp-zwssjr7beycc9oznedyydc.streamlit.app/)
-
-A screenshot supplied by the project owner confirms that the Streamlit UI loaded on Community Cloud. At that point the app displayed its **no server key configured** source-only fallback. **Public hosting is established from the owner screenshot, but live Groq output, the runtime quality gate, independent mentor access, and live Golden Set accuracy are not yet verified.** Configure `GROQ_API_KEY` using Streamlit's private App settings > Secrets, then perform the documented live tests.
-
 ## Run on Windows (first run)
 
 1. Extract `Groww_SIP_Eval_Gated_AI_MVP_Deploy_Ready.zip` to a normal folder. Do not run inside the ZIP.
@@ -76,7 +70,7 @@ The checks exercise routing, source controls and fallback logic **without callin
 2. Review the actual response, citation, and behaviour against the expected outcome. Record failures.
 3. Conduct at least 2–3 short usability sessions if possible, representing first-time SIP users. Record whether they understood the choices, not whether they felt pressured to keep investing.
 4. Use new interviews to decide whether the primary problem is clarity, payment recovery, or affordability; narrow or adapt the MVP accordingly.
-5. Verify the already-published Streamlit URL with AI configured, then perform an incognito mentor-access smoke test.
+5. Deploy to a controlled testing URL after privacy review, if required by the assignment.
 6. Add MVP screenshots, evaluation results and live URL to Slides 7–10 and to the existing Google Drive Evidence Hub (`05_MVP_and_Evaluation`).
 
 ## Project files
@@ -104,4 +98,12 @@ The checks exercise routing, source controls and fallback logic **without callin
 
 ## Submission status (Part 5)
 
-See [Part 5 readiness and handoff](PART5_READINESS_AND_HANDOFF.md) and [deployment walkthrough](DEPLOY_ON_STREAMLIT.md). Offline checks are green and a Streamlit URL has been supplied; **real Groq evaluation, human grading, independent access confirmation and real-user usability tests are still required**.
+See [Part 5 readiness and handoff](PART5_READINESS_AND_HANDOFF.md) and [deployment walkthrough](DEPLOY_ON_STREAMLIT.md). Offline checks are green; **real Groq evaluation, human grading, public deployment and real-user usability tests are still required**.
+
+## Quality-gate troubleshooting — 2 November 2026
+
+If Streamlit displays **SOURCE-ONLY FALLBACK**, read the smaller **gate reason** caption below the warning. The UI is deliberately designed to show vetted guidance rather than an unchecked AI answer.
+
+The gate now normalizes spelled-out source numbers (e.g., official source **“two working days”** vs model **“2 working days”**), uses Groq's strict JSON Schema mode for `openai/gpt-oss-20b`, and displays a non-sensitive status category if the provider request fails. The fallback remains in effect for invalid citations, unsupported numeric claims, prohibited advice, invalid output, provider errors or rate limiting.
+
+**Do not report the 20/20 offline tests as live AI factual accuracy.** After this fix, rerun live questions and manually review the output and citations; if fallback persists, note the gate reason.
