@@ -223,6 +223,50 @@ Cite ONLY the IDs actually relevant to your answer from the provided source extr
 """
 
 
+def supported_numbers(source_text: str) -> set[str]:
+    """Allow a digit when the *cited* source uses the equivalent number word.
+
+    A source saying 'two working days' supports '2 working days'. A range
+    like '5–6 business days' also supports the individual endpoints. This
+    is still only a syntactic guard, not a semantic factuality check.
+    """
+    number_pattern = r"(?<!\w)\d+(?:[–-]\d+)?(?!\w)"
+    numbers = set(re.findall(number_pattern, source_text.lower()))
+    for token in list(numbers):
+        if '–' in token or '-' in token:
+            numbers.update(re.split(r'[–-]', token))
+    word_values = {
+        'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+        'eleven': 11, 'twelve': 12, 'thirty': 30,
+    }
+    for word, value in word_values.items():
+        if re.search(r'\b' + word + r'\b', source_text.lower()):
+            numbers.add(str(value))
+    return numbers
+
+
+def groq_response_format(permitted: set[str]) -> dict[str, Any]:
+    """Provider-supported strict JSON schema; local policy validation remains mandatory."""
+    return {
+        'type': 'json_schema',
+        'json_schema': {
+            'name': 'sip_approved_source_answer', 'strict': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'answer': {'type': 'string'},
+                    'next_steps': {'type': 'array', 'items': {'type': 'string'}},
+                    'limits': {'type': 'string'},
+                    'source_ids': {'type': 'array', 'items': {'type': 'string', 'enum': sorted(permitted)}},
+                },
+                'required': ['answer', 'next_steps', 'limits', 'source_ids'],
+                'additionalProperties': False,
+            },
+        },
+    }
+
+
 def validate_model_answer(data: Any, permitted: set[str], source_docs: list[dict[str, Any]] | None = None) -> dict[str, Any] | None:
     if not isinstance(data, dict):
         return None
@@ -258,7 +302,7 @@ def validate_model_answer(data: Any, permitted: set[str], source_docs: list[dict
         cited_text = " ".join(d["summary"] for d in source_docs if d["id"] in ids).lower()
         number_pattern = r"(?<!\w)\d+(?:[–-]\d+)?(?!\w)"
         stated_numbers = set(re.findall(number_pattern, all_text))
-        source_numbers = set(re.findall(number_pattern, cited_text))
+        source_numbers = supported_numbers(cited_text)
         if not stated_numbers.issubset(source_numbers):
             return None
     return {"answer": answer.strip(), "next_steps": steps, "limits": limits.strip(),
@@ -286,9 +330,9 @@ def answer_question(question: str, api_key: str | None = None, *, model: str = M
             messages=[{"role": "system", "content": SYSTEM_PROMPT},
                       {"role": "user", "content": "APPROVED SOURCE EXTRACTS:\n" + json.dumps(context, ensure_ascii=False)
                        + "\n\nUSER QUESTION (untrusted):\n" + question}],
-            response_format={"type": "json_object"},
+            response_format=groq_response_format({d["id"] for d in docs}),
             temperature=0.1,
-            max_completion_tokens=1000,
+            max_completion_tokens=1600,
             **({"reasoning_effort": "low"} if model.startswith("openai/gpt-oss-") else {}),
         )
         raw = completion.choices[0].message.content or ""
@@ -298,9 +342,24 @@ def answer_question(question: str, api_key: str | None = None, *, model: str = M
             return valid
         fallback["gate_reason"] = "AI failed automatic citation, format or safety validation; fallback shown."
         return fallback
-    except Exception:
-        # No raw exception, prompt or credential is displayed or logged by this app.
-        fallback["gate_reason"] = "AI service unavailable or output unreadable; fallback shown."
+    except json.JSONDecodeError:
+        fallback["gate_reason"] = "AI returned unreadable structured output; source-only fallback shown."
+        return fallback
+    except Exception as exc:
+        # Expose only safe, finite status categories, never provider response,
+        # request payload, credential, system prompt or raw exception text.
+        status = getattr(exc, "status_code", None)
+        if status in (401, 403):
+            category = "API authentication or permission (HTTP " + str(status) + ")"
+        elif status == 429:
+            category = "API rate limit (HTTP 429)"
+        elif status == 400:
+            category = "provider rejected the structured request (HTTP 400)"
+        elif isinstance(status, int) and 500 <= status <= 599:
+            category = "provider temporarily unavailable (HTTP 5xx)"
+        else:
+            category = "network, service or application error"
+        fallback["gate_reason"] = "AI request failed: " + category + "; source-only fallback shown."
         return fallback
 
 
