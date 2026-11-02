@@ -1,0 +1,17 @@
+{
+  "timestamp_utc": "2026-11-02T05:34:37.300483+00:00",
+  "dataset": "20 scenarios derived from previously human-adjudicated public Evidence Log observations",
+  "model_evaluation_executed": false,
+  "total_cases": 20,
+  "automatic_routing_and_gate_pass": 20,
+  "automatic_routing_and_gate_pass_rate": 1.0,
+  "expected_source_alignment_pass": 20,
+  "source_alignment_rate": 1.0,
+  "whitelisted_citations_pass": 20,
+  "basic_safety_check_pass": 20,
+  "AI_eligible_scenarios": 8,
+  "AI_answers_accepted_by_gate": 0,
+  "AI_acceptance_rate_on_eligible": null,
+  "human_factual_accuracy": "NOT MEASURED — requires reviewer to fill CSV",
+  "caution": "Automatic checks test routing/safety/source IDs, not semantic factual truth or observed 12-month continuation."
+}
